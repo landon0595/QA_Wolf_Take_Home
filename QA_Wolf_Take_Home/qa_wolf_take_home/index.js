@@ -1,14 +1,26 @@
+import express from 'express';
+import { time } from 'node:console';
+import { chromium } from "playwright";
+
+const app = express();
+app.use(express.static('public'));
+
 // EDIT THIS FILE TO COMPLETE ASSIGNMENT QUESTION 1
-const { time } = require("console");
-const { get } = require("http");
-const { chromium } = require("playwright");
 
+/*
+No longer necessary to import these, but leaving here for reference
+import { time } from "console";
+import { get } from"http";
+*/
 
-async function sortHackerNewsArticles() {
-  // launch browser
-  const browser = await chromium.launch({ headless: false });
+//core function
+async function sortHackerNewsArticles(target = 100) {
+  // launch browser, but dont show it (headless)
+  const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
   const page = await context.newPage();
+
+  try {
 
   // go to Hacker News
   await page.goto("https://news.ycombinator.com/newest");
@@ -37,6 +49,7 @@ async function sortHackerNewsArticles() {
         await clickMoreSafely();
         await page.waitForSelector(".athing");
     }
+    
     //hint: last print should be 100 (for testing)
     console.log("Total timestamps:", timestamps.length);
   }
@@ -56,7 +69,24 @@ async function sortHackerNewsArticles() {
     console.log("Newest:", new Date(timestamps[0]).toISOString());
     console.log("Oldest:", new Date(timestamps[99]).toISOString());
 
+    /*
+    //DEBUGGING: Did the scraper even run? 0 = no, 100 = yes
+    console.log("[scraper] timestamps length:", timestamps.length);
+    //DEBUGGING: show what timestamps are being parsed on each page
+    console.log("[scraper] first:", timestamps[0], "last:", timestamps[timestamps.length - 1]);
+    */
+    return {
+      timestamps,
+      newest: timestamps[0],
+      oldest: timestamps[timestamps.length - 1],
+    };
+
+  //guarentees breakdown of browser, even if error is thrown
+  } finally {
+    await context.close();
+    await browser.close();
   }
+}
 
   /*FOR DEBUGGING
   const times1 = await getPageTimestamps(page);
@@ -94,6 +124,7 @@ async function sortHackerNewsArticles() {
   console.log("First 3 timestamps:", times.slice(0, 3));
   */
 
+//helper function to get timestamps from current page
 async function getPageTimestamps(page) {
   return await page.evaluate(() => {
     
@@ -122,8 +153,62 @@ async function getPageTimestamps(page) {
   });
 }
 
-(async () => {
-  await sortHackerNewsArticles();
-})();
+//Front-end stuff
+//run button uses this call endpoint
+app.get("/api/run", async (req, res) => {
+    try {
+    const website = req.query.website ?? "hackernews";
+    const count = Number(req.query.count ?? 100);
+    const options = String(req.query.options ?? "")
+      .split(",")
+      .filter(Boolean);
+
+    /*
+    //DEBUGGING: confirms front end receives correct params from back end
+    console.log("[/api/run] website:", website, "count:", count, "options:", options);
+    */
+
+    const result = await sortHackerNewsArticles(count);
+
+    /*
+    //DEBUGGING: show what sortHackerNewsArticles returns
+    console.log("[/api/run] result keys:", result ? Object.keys(result) : result);
+    //DEBUGGING: show wether newest and oldest exist before used
+    console.log("[/api/run] newest:", result?.newest, "oldest:", result?.oldest);
+    */
+
+    const websiteLabel = website === "hackernews" ? "Hacker News" : website;
+
+    const messages = [];
+    
+
+    if (options.includes("order")) {
+        messages.push("Order verified (newest -> oldest)");
+    }
+
+    if (options.includes("window")) {
+      const newestIso = new Date(result.newest).toISOString();
+      const oldestIso = new Date(result.oldest).toISOString();
+        messages.push(`Time window: ${newestIso} -> ${oldestIso}`);
+    }  
+
+    //sends data to browser
+    res.json({ 
+      ok: true,
+      websiteLabel,
+      count: result.timestamps.length,
+      messages,
+  });
+} catch (err) {
+    console.error("API /api/run error:", err);
+    res.status(500).json({
+        ok: false,
+        error: err?.message ?? "Unknown server error",
+    });
+}
+});
+
+
+app.listen(3000, () => console.log("Running on http://localhost:3000"));
 
 

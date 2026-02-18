@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QA Wolf Take Home</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700&display=swap">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <main class="card">
+        <h1 class="heading"> Task Wolf Website Scraper </h1>
+
+        <section class="controls">
+            <div class="field">
+                <label>Website</label>
+                <select id="website" required>
+                    <option value="" disabled selected hidden>
+                        Website to scrape
+                    </option>
+                    <option value="hackernews">Hacker News</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label>Number of Articles</label>
+                <select id="count" required>
+                    <option value="" disabled selected hidden>
+                        Number of articles to scrape
+                    </option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+            
+            <div class="field">
+                <label>What to Scrape</label>
+                <select id="whatToScrape" required>
+                    <option value="" disabled selected hidden>
+                        What to scrape
+                    </option>
+                    <option value="order">Order Verification</option>
+                    <option value="window">Time window</option>
+                </select>
+            </div>
+        </section>
+        <div class="runRow">
+            <button id="run" class="run-btn">Run</button>
+            <div id="loader" class="loader hidden"></div>
+            <span id="errorMessage" class="hidden">
+                Error, please select an option for each field.
+            </span>
+        </div>
+        <section id="output" class="output hidden"></section>
+    </main>
+
+    <script type="module" src="app.js"></script>  
+</body>
+</html>
